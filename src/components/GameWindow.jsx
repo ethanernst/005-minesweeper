@@ -1,9 +1,11 @@
+import { useContext, useRef, useState } from 'react';
+
 import useWindowDimensions from '../hooks/useWindowDimensions';
 
 import styled from 'styled-components';
 
 import Game from './Game';
-import { useState } from 'react';
+import GlobalContext from '../store/GlobalContext';
 
 const Container = styled.div`
   width: 100vw;
@@ -61,6 +63,12 @@ const GameContainer = styled.div`
 
 function GameWindow() {
   const { height, width } = useWindowDimensions();
+  const { boardWidth, boardHeight, boardMineCount, generateNewBoard } =
+    useContext(GlobalContext);
+
+  const widthRef = useRef();
+  const heightRef = useRef();
+  const mineCountRef = useRef();
 
   const HEADERHEIGHTINPX = 250;
 
@@ -69,65 +77,19 @@ function GameWindow() {
 
   const minBoardWidth = 5;
   const maxBoardWidth = Math.floor(width / (TILESIZEINPX * TILESCALE));
-  const [boardWidth, setBoardWidth] = useState(Math.floor(maxBoardWidth / 2));
 
   const minBoardHeight = 5;
   const maxBoardHeight = Math.floor(
     (height - HEADERHEIGHTINPX) / (TILESIZEINPX * TILESCALE)
   );
-  const [boardHeight, setBoardHeight] = useState(
-    Math.floor(maxBoardHeight / 2)
-  );
 
-  const minMineCount = 5;
-  const maxMineCount = Math.floor(boardWidth * boardHeight * 0.8);
-  const [boardMineCount, setBoardMineCount] = useState(
-    Math.floor(boardWidth * boardHeight * 0.25)
-  );
-
-  const handleUpdateBoardWidth = e => {
+  const handleUpdateGame = e => {
     e.preventDefault();
 
-    let newValue = e.target.value;
-    if (newValue > maxBoardWidth) {
-      newValue = maxBoardWidth;
-    }
-
-    if (newValue < minBoardWidth) {
-      newValue = minBoardWidth;
-    }
-
-    setBoardWidth(newValue);
-  };
-
-  const handleUpdateBoardHeight = e => {
-    e.preventDefault();
-
-    let newValue = e.target.value;
-    if (newValue > maxBoardHeight) {
-      newValue = maxBoardHeight;
-    }
-
-    if (newValue < minBoardHeight) {
-      newValue = minBoardHeight;
-    }
-
-    setBoardHeight(newValue);
-  };
-
-  const handleUpdateBoardMineCount = e => {
-    e.preventDefault();
-
-    let newValue = e.target.value;
-    if (newValue > maxMineCount) {
-      newValue = maxMineCount;
-    }
-
-    if (newValue < minMineCount) {
-      newValue = minMineCount;
-    }
-
-    setBoardMineCount(newValue);
+    const newWidth = widthRef.current.value;
+    const newheight = heightRef.current.value;
+    const newMineCount = mineCountRef.current.value;
+    generateNewBoard(newWidth, newheight, newMineCount);
   };
 
   return (
@@ -144,33 +106,36 @@ function GameWindow() {
             </SettingsContentGroup>
             <SettingsContentGroup>
               <h3>Board Size</h3>
-              <label htmlFor="width">Width: </label>
-              <input
-                type="number"
-                name="width"
-                min={minBoardWidth}
-                max={maxBoardWidth}
-                onChange={handleUpdateBoardWidth}
-                value={boardWidth}
-              />
-              <label htmlFor="height">Height: </label>
-              <input
-                type="number"
-                name="height"
-                min={minBoardHeight}
-                max={maxBoardHeight}
-                value={boardHeight}
-                onChange={handleUpdateBoardHeight}
-              />
-              <label htmlFor="mines">Mines: </label>
-              <input
-                type="number"
-                name="mines"
-                min={minMineCount}
-                max={maxMineCount}
-                value={boardMineCount}
-                onChange={handleUpdateBoardMineCount}
-              />
+              <form onSubmit={handleUpdateGame}>
+                <label htmlFor="width">Width: </label>
+                <input
+                  ref={widthRef}
+                  type="number"
+                  name="width"
+                  min={minBoardWidth}
+                  max={maxBoardWidth}
+                  defaultValue={boardWidth}
+                />
+                <label htmlFor="height">Height: </label>
+                <input
+                  ref={heightRef}
+                  type="number"
+                  name="height"
+                  min={minBoardHeight}
+                  max={maxBoardHeight}
+                  defaultValue={boardHeight}
+                />
+                <label htmlFor="mines">Mines: </label>
+                <input
+                  ref={mineCountRef}
+                  type="number"
+                  name="mines"
+                  min={1}
+                  max={200}
+                  defaultValue={boardMineCount}
+                />
+                <button type="submit">Update</button>
+              </form>
             </SettingsContentGroup>
             <SettingsContentGroup>
               <h3>Game Window</h3>
@@ -178,7 +143,8 @@ function GameWindow() {
                 width: {width}px ({maxBoardWidth} tiles max)
               </p>
               <p>
-                height: {height}px ({maxBoardHeight} tiles max)
+                height: {height - HEADERHEIGHTINPX}px ({maxBoardHeight} tiles
+                max)
               </p>
               <p>mine count: {boardMineCount}</p>
             </SettingsContentGroup>
@@ -186,12 +152,7 @@ function GameWindow() {
         </Settings>
       </Header>
       <GameContainer>
-        <Game
-          width={boardWidth}
-          height={boardHeight}
-          scale={TILESCALE}
-          tileSize={TILESIZEINPX}
-        />
+        <Game scale={TILESCALE} tileSize={TILESIZEINPX} />
       </GameContainer>
     </Container>
   );

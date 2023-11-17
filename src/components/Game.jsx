@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 
 import styled from 'styled-components';
 
 import Tile from './Tile';
+import GlobalContext from '../store/GlobalContext';
 
 const Container = styled.table.attrs(
   ({ $width, $height, $scale, $tileSize }) => ({
@@ -14,63 +15,55 @@ const Container = styled.table.attrs(
 )`
   background-color: transparent;
   border: 4px dashed black;
-  gap: 0px;
+  border-collapse: collapse;
+  table-layout: fixed;
 `;
 
-function Game({ width, height, scale, tileSize }) {
-  const [boardState, setBoardState] = useState([]);
+function Game({ scale, tileSize, mineCount }) {
+  const { board, boardMineCount } = useContext(GlobalContext);
   const [boardJsx, setBoardJsx] = useState([]);
 
-  // update board when width / height changes
-  useEffect(() => {
-    const newState = [];
-    for (let row = 0; row < height; row++) {
-      const column = [];
-      for (let columns = 0; columns < width; columns++) {
-        column.push(0);
-      }
-      newState.push(column);
-    }
+  const boardWidth = board[0].length;
+  const boardHeight = board.length;
 
-    setBoardState(newState);
-  }, [width, height, scale, tileSize]);
+  console.log('width: ' + boardWidth + ' height: ' + boardHeight);
 
   // generate game board
   useEffect(() => {
-    if (!boardState) {
+    if (!board) {
       return;
     }
 
     console.log('displaying board');
 
-    const board = [];
+    const boardJsx = [];
 
-    for (let row = 0; row < height; row++) {
+    for (let row = 0; row < boardHeight; row++) {
       const boardColumn = [];
-      for (let column = 0; column < width; column++) {
+      for (let column = 0; column < boardWidth; column++) {
         boardColumn.push(
           <Tile
             key={`${row}:${column}`}
-            id={`${row}:${column}`}
-            // value={boardState[row][column]}
             tileSize={tileSize}
             scale={scale}
+            row={row}
+            column={column}
           />
         );
       }
-      board.push(<tr key={row}>{boardColumn}</tr>);
+      boardJsx.push(<tr key={row}>{boardColumn}</tr>);
     }
 
-    setBoardJsx(board);
-  }, [boardState]);
+    setBoardJsx(boardJsx);
+  }, [board]);
 
-  console.log(boardState);
+  console.log(board);
   console.log(boardJsx);
 
   return (
     <Container
-      $width={width}
-      $height={height}
+      $width={boardWidth}
+      $height={boardHeight}
       $scale={scale}
       $tileSize={tileSize}
     >
