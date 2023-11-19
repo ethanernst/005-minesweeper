@@ -2,8 +2,15 @@ import React, { useState, createContext, useEffect } from 'react';
 
 // creates an array with a random distribution of mines
 function generateMinesweeperBoard(width, height, mineCount) {
-  console.log('generating array: ', width, height, mineCount);
+  // board values:
+  // 0 - 8 -> number of mines near cell
+  // x -> mine
+  // f -> flagged cell (no mine)
+  // xf -> flagged cell (mine)
+
   const newBoard = [];
+
+  console.log('generating empty array: ', width, height, mineCount);
   for (let row = 0; row < height; row++) {
     const column = [];
     for (let col = 0; col < width; col++) {
@@ -12,24 +19,55 @@ function generateMinesweeperBoard(width, height, mineCount) {
     newBoard.push(column);
   }
 
-  console.log('generated empty array: ' + newBoard);
+  console.log('adding mines');
   for (let i = 0; i < mineCount; i++) {
     let row = Math.floor(Math.random() * height);
     let col = Math.floor(Math.random() * width);
 
-    console.log('generating mine ' + i);
-    while (newBoard[row][col] !== 0) {
+    while (typeof newBoard[row][col] !== 'number') {
       row = Math.floor(Math.random() * height);
       col = Math.floor(Math.random() * width);
-      console.log(
-        `checking cell ${row}:${col}, value is ${newBoard[row][col]}`
-      );
     }
 
-    newBoard[row][col] = 1;
+    newBoard[row][col] = 'x';
   }
 
-  console.log('newBoard generated');
+  const checkSurroundingCells = (row, col) => {
+    const numRows = newBoard.length;
+    const numColumns = newBoard[0].length;
+    let mineCount = 0;
+
+    for (let rowOffset = row - 1; rowOffset <= row + 1; rowOffset++) {
+      for (let colOffset = col - 1; colOffset <= col + 1; colOffset++) {
+        // Check if the offsets are within bounds
+        if (
+          rowOffset >= 0 &&
+          rowOffset < numRows &&
+          colOffset >= 0 &&
+          colOffset < numColumns
+        ) {
+          if (!(rowOffset === row && colOffset === col)) {
+            if (newBoard[rowOffset][colOffset] === 'x') {
+              mineCount++;
+            }
+          }
+        }
+      }
+    }
+
+    return mineCount;
+  };
+
+  console.log('updating cell mine counts');
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      if (newBoard[row][col] !== 'x') {
+        newBoard[row][col] = checkSurroundingCells(row, col);
+      }
+    }
+  }
+
+  console.log('board generated: ', newBoard);
   return newBoard;
 }
 
@@ -58,9 +96,15 @@ export const GlobalContextProvider = ({ children }) => {
     setBoard(generateMinesweeperBoard(width, height, mineCount));
   };
 
-  const getCellValue = (row, col) => {
-    return board[row][col];
+  const getTileValue = (row, col) => {
+    // catches issues with out of sync tile updates
+    if (row < boardHeight && col < boardWidth) {
+      return board[row][col];
+    }
+    return null;
   };
+
+  const handleTileSelected = (row, col) => {};
 
   const globalStateValue = {
     board,
@@ -71,7 +115,7 @@ export const GlobalContextProvider = ({ children }) => {
     boardMineCount,
     setBoardMineCount,
     generateNewBoard,
-    getCellValue,
+    getTileValue,
   };
 
   return (

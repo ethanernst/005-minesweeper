@@ -19,14 +19,12 @@ const Container = styled.table.attrs(
   table-layout: fixed;
 `;
 
-function Game({ scale, tileSize, mineCount }) {
-  const { board, boardMineCount } = useContext(GlobalContext);
+function Game({ scale, tileSize }) {
+  const { board } = useContext(GlobalContext);
   const [boardJsx, setBoardJsx] = useState([]);
 
   const boardWidth = board[0].length;
   const boardHeight = board.length;
-
-  console.log('width: ' + boardWidth + ' height: ' + boardHeight);
 
   // generate game board
   useEffect(() => {
@@ -35,7 +33,6 @@ function Game({ scale, tileSize, mineCount }) {
     }
 
     console.log('displaying board');
-
     const boardJsx = [];
 
     for (let row = 0; row < boardHeight; row++) {
@@ -57,8 +54,8 @@ function Game({ scale, tileSize, mineCount }) {
     setBoardJsx(boardJsx);
   }, [board]);
 
-  console.log(board);
-  console.log(boardJsx);
+  // console.log(board);
+  // console.log(boardJsx);
 
   return (
     <Container
