@@ -20,18 +20,11 @@ const Container = styled.table.attrs(
 `;
 
 function Game({ scale, tileSize }) {
-  const { board } = useContext(GlobalContext);
+  const { boardWidth, boardHeight } = useContext(GlobalContext);
   const [boardJsx, setBoardJsx] = useState([]);
-
-  const boardWidth = board[0].length;
-  const boardHeight = board.length;
 
   // generate game board
   useEffect(() => {
-    if (!board) {
-      return;
-    }
-
     console.log('displaying board');
     const boardJsx = [];
 
@@ -52,7 +45,7 @@ function Game({ scale, tileSize }) {
     }
 
     setBoardJsx(boardJsx);
-  }, [board]);
+  }, [boardWidth, boardHeight]);
 
   // console.log(board);
   // console.log(boardJsx);

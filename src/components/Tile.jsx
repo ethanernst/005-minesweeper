@@ -75,26 +75,31 @@ function Tile({ tileSize, scale, row, column }) {
   };
 
   // updates cell when board updates
-  // tileState values:
-  // 0 -> not visited
-  // f -> flagged
-  // 1 -> visited
   useEffect(() => {
-    const { state, value } = getTile(row, column);
+    // tile ==> { state, value }
+    const tile = getTile(row, column);
 
-    // not visited
-    if (!state) {
+    // invalid / out of sync tile state
+    // happens when reducing board size
+    // ingore null value until unmounted by Game component
+    if (!tile) {
+      return;
+    }
+
+    // not revealed
+    if (!tile.state) {
       setCellValue('default');
       return;
     }
 
     // flagged
-    if (state === 'f') {
+    if (tile.state === 'f') {
       setCellValue('f');
       return;
     }
 
-    setCellValue(value);
+    // revealed
+    setCellValue(tile.value);
   }, [getTile]);
 
   return (

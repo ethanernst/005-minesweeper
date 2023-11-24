@@ -13,11 +13,17 @@ function generateEmptyArray(width, height) {
   return emptyArray;
 }
 
-// creates an array with a random distribution of mines
+// creates a 2D array of objects with tile values and states
+// and randomly distributes x number of mines
 function generateMinesweeperBoard(width, height, mineCount) {
-  // board values:
+  // for { value, state } in 2d array:
+  // value:
   // 0 - 8 -> number of mines near cell
   // x -> mine
+  // state:
+  // 0 -> not revealed
+  // 1 -> revealed
+  // f -> flagged
 
   console.log('generating empty array: ', width, height);
   const newBoard = generateEmptyArray(width, height);
@@ -61,7 +67,7 @@ function generateMinesweeperBoard(width, height, mineCount) {
     return mineCount;
   };
 
-  console.log('updating cell mine counts');
+  console.log('updating cell values');
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {
       if (newBoard[row][col] !== 'x') {
@@ -70,10 +76,22 @@ function generateMinesweeperBoard(width, height, mineCount) {
     }
   }
 
-  console.log('board generated: ', newBoard);
-  return newBoard;
+  // convert tile value array to board array with tile value and states
+  console.log('generating final board');
+  const finalBoard = [];
+  for (let row = 0; row < height; row++) {
+    const finalCol = [];
+    for (let col = 0; col < width; col++) {
+      finalCol.push({ value: newBoard[row][col], state: 0 });
+    }
+    finalBoard.push(finalCol);
+  }
+
+  console.log('board generated: ', finalBoard);
+  return finalBoard;
 }
 
+// initial constants
 const INITIALWIDTH = 30;
 const INITIALHEIGHT = 30;
 const INITIALMINECOUNT = Math.floor(INITIALWIDTH * INITIALHEIGHT * 0.1);
@@ -84,8 +102,6 @@ const initialBoard = generateMinesweeperBoard(
   INITIALMINECOUNT
 );
 
-const initialTileStates = generateEmptyArray(INITIALWIDTH, INITIALHEIGHT);
-
 const GlobalContext = createContext();
 
 export const GlobalContextProvider = ({ children }) => {
@@ -93,19 +109,8 @@ export const GlobalContextProvider = ({ children }) => {
   const [boardHeight, setBoardHeight] = useState(INITIALHEIGHT);
   const [boardMineCount, setBoardMineCount] = useState(INITIALMINECOUNT);
   const [board, setBoard] = useState(initialBoard);
-  const [tileStates, setTileStates] = useState(initialTileStates);
 
-  const isValidTile = (row, col, board, visited) => {
-    return (
-      row >= 0 &&
-      row < board.length &&
-      col >= 0 &&
-      col < board[0].length &&
-      board[row][col] === 0 &&
-      !visited.includes(`${row}:${col}`)
-    );
-  };
-
+  // recursively reveal nearby cells of empty cells
   const searchNearbyCells = (row, col, board) => {
     console.log('searching cells from', row, col);
 
@@ -125,26 +130,26 @@ export const GlobalContextProvider = ({ children }) => {
 
     queue.push([row, col]);
 
+    // loop queue until all cells have been exhausted
     while (queue.length > 0) {
-      const current = queue.shift();
-      const currRow = current[0];
-      const currCol = current[1];
+      const [currRow, currCol] = queue.shift();
 
-      // skip to next loop if cell is invalid
+      // skip loop if cell is invalid, already visited, or flagged
       if (
         currRow < 0 ||
         currRow >= board.length ||
         currCol < 0 ||
         currCol >= board[0].length ||
-        visitedCells.includes(`${currRow}:${currCol}`)
+        visitedCells.includes(`${currRow}:${currCol}`) ||
+        board[currRow][currCol].state === 'f'
       ) {
         continue;
       }
 
-      // encode visited cells so we can check if it includes(value)
+      // encode visited cells so we can quickly check for inclusion
       visitedCells.push(`${currRow}:${currCol}`);
 
-      if (board[currRow][currCol] === 0) {
+      if (board[currRow][currCol].value === 0) {
         for (const [rowOffset, colOffset] of directions) {
           const nextRow = currRow + rowOffset;
           const nextCol = currCol + colOffset;
@@ -153,17 +158,18 @@ export const GlobalContextProvider = ({ children }) => {
       }
     }
 
-    setTileStates(prev => {
-      const newStates = [...prev];
+    // update board states using visitedCells
+    setBoard(prev => {
+      const updatedBoard = [...prev];
 
       visitedCells.forEach(cell => {
         const cellRow = Number(cell.slice(0, cell.indexOf(':')));
         const cellCol = Number(cell.slice(cell.indexOf(':') + 1));
 
-        newStates[cellRow][cellCol] = 1;
+        updatedBoard[cellRow][cellCol].state = 1;
       });
 
-      return [...newStates];
+      return [...updatedBoard];
     });
   };
 
@@ -172,42 +178,55 @@ export const GlobalContextProvider = ({ children }) => {
     setBoardHeight(height);
     setBoardMineCount(mineCount);
     setBoard(generateMinesweeperBoard(width, height, mineCount));
-    setTileStates(generateEmptyArray(width, height));
   };
 
   const getTile = (row, col) => {
     // catches issues with out of sync tile updates
     if (row < boardHeight && col < boardWidth) {
-      return { value: board[row][col], state: tileStates[row][col] };
+      return board[row][col];
     }
 
     return null;
   };
 
   const selectTile = (row, col) => {
-    console.log('select tile', row, col);
+    // skip flagged tiles
+    if (board[row][col].state === 'f') {
+      return;
+    }
 
-    if (board[row][col] === 0) {
+    // reveal empty sections of board if empty
+    if (board[row][col].value === 0) {
       searchNearbyCells(row, col, board);
       return;
     }
 
-    setTileStates(prev => [...prev, (prev[row][col] = 1)]);
+    // reveal a single tile
+    setBoard(prev => {
+      const updatedBoard = [...prev];
+      updatedBoard[row][col].state = 1;
+      return updatedBoard;
+    });
   };
 
   const flagTile = (row, col) => {
-    console.log('flag tile', row, col);
+    setBoard(prev => {
+      const updatedBoard = [...prev];
 
-    setTileStates(prev => [...prev, (prev[row][col] = 'f')]);
+      if (updatedBoard[row][col].state === 0) {
+        updatedBoard[row][col].state = 'f';
+      } else if (updatedBoard[row][col].state === 'f') {
+        updatedBoard[row][col].state = 0;
+      }
+
+      return updatedBoard;
+    });
   };
 
   const globalStateValue = {
     board,
-    tileStates,
     boardWidth,
-    setBoardWidth,
     boardHeight,
-    setBoardHeight,
     boardMineCount,
     setBoardMineCount,
     generateNewBoard,
