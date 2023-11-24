@@ -109,27 +109,46 @@ export const GlobalContextProvider = ({ children }) => {
   const searchNearbyCells = (row, col, board) => {
     console.log('searching cells from', row, col);
 
-    const rowOffset = [-1, 0, 0, 1];
-    const colOffset = [0, -1, 1, 0];
-    const visitedCells = [];
-
-    // encode visited cells so we can check if it includes(value)
-    visitedCells.push(`${row}:${col}`);
+    const directions = [
+      [-1, 0],
+      [1, 0],
+      [0, -1],
+      [0, 1],
+      [-1, -1],
+      [-1, 1],
+      [1, -1],
+      [1, 1],
+    ];
 
     const queue = [];
+    const visitedCells = [];
+
     queue.push([row, col]);
 
     while (queue.length > 0) {
       const current = queue.shift();
+      const currRow = current[0];
+      const currCol = current[1];
 
-      for (let nearbyCell = 0; nearbyCell < 4; ++nearbyCell) {
-        let currentRow = current[0] + rowOffset[nearbyCell];
-        let currentCol = current[1] + colOffset[nearbyCell];
+      // skip to next loop if cell is invalid
+      if (
+        currRow < 0 ||
+        currRow >= board.length ||
+        currCol < 0 ||
+        currCol >= board[0].length ||
+        visitedCells.includes(`${currRow}:${currCol}`)
+      ) {
+        continue;
+      }
 
-        // add cell to queue if valid
-        if (isValidTile(currentRow, currentCol, board, visitedCells)) {
-          queue.push([currentRow, currentCol]);
-          visitedCells.push(`${currentRow}:${currentCol}`);
+      // encode visited cells so we can check if it includes(value)
+      visitedCells.push(`${currRow}:${currCol}`);
+
+      if (board[currRow][currCol] === 0) {
+        for (const [rowOffset, colOffset] of directions) {
+          const nextRow = currRow + rowOffset;
+          const nextCol = currCol + colOffset;
+          queue.push([nextRow, nextCol]);
         }
       }
     }
