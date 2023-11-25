@@ -17,6 +17,7 @@ import tile7 from '../assets/7.png';
 import tile8 from '../assets/8.png';
 import tileX from '../assets/x.png';
 import tileF from '../assets/f.png';
+import tileW from '../assets/w.png';
 
 const imageUrls = {
   0: tile0,
@@ -30,6 +31,7 @@ const imageUrls = {
   8: tile8,
   x: tileX,
   f: tileF,
+  w: tileW,
   default: tileEmpty,
 };
 
@@ -50,34 +52,42 @@ const TileContainer = styled.td`
 `;
 
 function Tile({ tileSize, scale, row, column }) {
-  const { getTile, selectTile, flagTile } = useContext(GlobalContext);
+  const { getTile, selectTile, flagTile, gameActive } =
+    useContext(GlobalContext);
 
-  const [cellValue, setCellValue] = useState(getTile(row, column));
+  // independant state for this tile, set to initial state value
+  const [tileValue, setTileValue] = useState(getTile(row, column));
 
   // calculate scaled tile size
   const SIZE = tileSize * scale;
 
   // set image url
-  const imageUrl = imageUrls[cellValue] || imageUrls.default;
+  const imageUrl = imageUrls[tileValue] || imageUrls.default;
 
-  // trigger cell action in context
+  // trigger tile action in context
   const handleClick = e => {
     e.preventDefault();
+
+    // disable input if game over
+    if (!gameActive) {
+      return;
+    }
 
     // left click
     if (e.nativeEvent.button === 0) {
       selectTile(row, column);
     }
+
     // right click
     if (e.nativeEvent.button === 2) {
       flagTile(row, column);
     }
   };
 
-  // updates cell when board updates
+  // updates tile when board updates or game ends, helps catch errors
   useEffect(() => {
-    // tile ==> { state, value }
     const tile = getTile(row, column);
+    // tile ==> { state, value }
 
     // invalid / out of sync tile state
     // happens when reducing board size
@@ -88,23 +98,28 @@ function Tile({ tileSize, scale, row, column }) {
 
     // not revealed
     if (!tile.state) {
-      setCellValue('default');
+      setTileValue('default');
+      return;
+    }
+
+    // reveal incorrectly flagged tiles on game end
+    if (!gameActive && tile.state === 'f' && tile.value !== 'x') {
+      setTileValue('w');
       return;
     }
 
     // flagged
     if (tile.state === 'f') {
-      setCellValue('f');
+      setTileValue('f');
       return;
     }
 
     // revealed
-    setCellValue(tile.value);
-  }, [getTile]);
+    setTileValue(tile.value);
+  }, [getTile, gameActive]);
 
   return (
     <TileContainer
-      $imgUrl={imageUrl}
       $size={SIZE}
       onClick={handleClick}
       onContextMenu={handleClick}

@@ -12,6 +12,8 @@ A recreation of Minesweeper in React
 
 11/17: Transferred state into GlobalContext, updated components to work with context, modified board update behavior (added update button instead of dynamic updates), and added default tile image.
 
-11/19: Overhauled board generation to calculate cell mine count values, added remaining images for tiles and updated Tile component to display correct image for it's value. Fixed bugs around board resizing and updating.
+11/19: Overhauled board generation to calculate tile mine count values, added remaining images for tiles and updated Tile component to display correct image for it's value. Fixed bugs around board resizing and updating.
 
 11/21: Added visited / not visited states to tiles, added left/right click detection and built depth first search algorithm for finding adjacent empty tiles.
+
+11/24: Updated empty tile search algorithm to reveal adjacent tiles, consolidated context tileValue and tileState arrays into a single array using objects, and updated components to work with new state structure. Updated board generation to reduce re-renders in Game component, improved flagging functionality, added new images for mines and flagged tiles, added image for flagged tiles with no mines, added gameActive state to context and disabled Tile interaction when gameActive is false. Updated naming conventions across project for consistency and added missing documentation.

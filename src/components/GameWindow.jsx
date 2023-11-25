@@ -59,6 +59,13 @@ const GameContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
+
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Old versions of Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none;
 `;
 
 function GameWindow() {
@@ -76,13 +83,15 @@ function GameWindow() {
   const TILESCALE = 1;
 
   const minBoardWidth = 5;
-  const maxBoardWidth = Math.floor(width / (TILESIZEINPX * TILESCALE));
+  const maxBoardWidth = Math.floor(width / (TILESIZEINPX * TILESCALE)) - 1;
 
   const minBoardHeight = 5;
-  const maxBoardHeight = Math.floor(
-    (height - HEADERHEIGHTINPX) / (TILESIZEINPX * TILESCALE)
-  );
+  const maxBoardHeight =
+    Math.floor((height - HEADERHEIGHTINPX) / (TILESIZEINPX * TILESCALE)) - 1;
 
+  const maxMineCount = Math.floor(maxBoardWidth * maxBoardHeight * 0.9);
+
+  // triggers a new board in context using input params
   const handleUpdateGame = e => {
     e.preventDefault();
 
@@ -131,7 +140,7 @@ function GameWindow() {
                   type="number"
                   name="mines"
                   min={1}
-                  max={200}
+                  max={maxMineCount}
                   defaultValue={boardMineCount}
                 />
                 <button type="submit">Update</button>

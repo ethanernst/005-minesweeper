@@ -15,17 +15,17 @@ function generateEmptyArray(width, height) {
 
 // creates a 2D array of objects with tile values and states
 // and randomly distributes x number of mines
+//
+// { value, state } in 2d array:
+// value:
+// 0 - 8 -> number of mines near tile
+// x -> mine
+// state:
+// 0 -> not revealed
+// 1 -> revealed
+// f -> flagged
 function generateMinesweeperBoard(width, height, mineCount) {
-  // for { value, state } in 2d array:
-  // value:
-  // 0 - 8 -> number of mines near cell
-  // x -> mine
-  // state:
-  // 0 -> not revealed
-  // 1 -> revealed
-  // f -> flagged
-
-  console.log('generating empty array: ', width, height);
+  console.log('generating empty array:', width, height);
   const newBoard = generateEmptyArray(width, height);
 
   console.log('adding mines');
@@ -41,7 +41,8 @@ function generateMinesweeperBoard(width, height, mineCount) {
     newBoard[row][col] = 'x';
   }
 
-  const checkSurroundingCells = (row, col) => {
+  // returns the number of mines around a given tile
+  const checkSurroundingTiles = (row, col) => {
     const numRows = newBoard.length;
     const numColumns = newBoard[0].length;
     let mineCount = 0;
@@ -67,11 +68,11 @@ function generateMinesweeperBoard(width, height, mineCount) {
     return mineCount;
   };
 
-  console.log('updating cell values');
+  console.log('updating tile values');
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {
       if (newBoard[row][col] !== 'x') {
-        newBoard[row][col] = checkSurroundingCells(row, col);
+        newBoard[row][col] = checkSurroundingTiles(row, col);
       }
     }
   }
@@ -95,6 +96,7 @@ function generateMinesweeperBoard(width, height, mineCount) {
 const INITIALWIDTH = 30;
 const INITIALHEIGHT = 30;
 const INITIALMINECOUNT = Math.floor(INITIALWIDTH * INITIALHEIGHT * 0.1);
+const INITIALBOARDSCALE = 1;
 
 const initialBoard = generateMinesweeperBoard(
   INITIALWIDTH,
@@ -108,11 +110,14 @@ export const GlobalContextProvider = ({ children }) => {
   const [boardWidth, setBoardWidth] = useState(INITIALWIDTH);
   const [boardHeight, setBoardHeight] = useState(INITIALHEIGHT);
   const [boardMineCount, setBoardMineCount] = useState(INITIALMINECOUNT);
+  const [boardScale, setBoardScale] = useState(INITIALBOARDSCALE);
   const [board, setBoard] = useState(initialBoard);
+  const [gameActive, setGameActive] = useState(true);
 
-  // recursively reveal nearby cells of empty cells
-  const searchNearbyCells = (row, col, board) => {
-    console.log('searching cells from', row, col);
+  // starting from an empty tile, recursively reveal adjacent tiles
+  // until no more adjacent empty tiles are found
+  const searchNearbyTiles = (row, col, board) => {
+    console.log('searching tiles from', row, col);
 
     const directions = [
       [-1, 0],
@@ -126,28 +131,28 @@ export const GlobalContextProvider = ({ children }) => {
     ];
 
     const queue = [];
-    const visitedCells = [];
+    const visitedTiles = [];
 
     queue.push([row, col]);
 
-    // loop queue until all cells have been exhausted
+    // loop queue until all tiles have been exhausted
     while (queue.length > 0) {
       const [currRow, currCol] = queue.shift();
 
-      // skip loop if cell is invalid, already visited, or flagged
+      // skip loop if tile is invalid, already visited, or flagged
       if (
         currRow < 0 ||
         currRow >= board.length ||
         currCol < 0 ||
         currCol >= board[0].length ||
-        visitedCells.includes(`${currRow}:${currCol}`) ||
+        visitedTiles.includes(`${currRow}:${currCol}`) ||
         board[currRow][currCol].state === 'f'
       ) {
         continue;
       }
 
-      // encode visited cells so we can quickly check for inclusion
-      visitedCells.push(`${currRow}:${currCol}`);
+      // encode visited tiles so we can quickly check for inclusion
+      visitedTiles.push(`${currRow}:${currCol}`);
 
       if (board[currRow][currCol].value === 0) {
         for (const [rowOffset, colOffset] of directions) {
@@ -158,28 +163,53 @@ export const GlobalContextProvider = ({ children }) => {
       }
     }
 
-    // update board states using visitedCells
+    // update board states using visitedTiles
     setBoard(prev => {
       const updatedBoard = [...prev];
 
-      visitedCells.forEach(cell => {
-        const cellRow = Number(cell.slice(0, cell.indexOf(':')));
-        const cellCol = Number(cell.slice(cell.indexOf(':') + 1));
+      visitedTiles.forEach(tile => {
+        const tileRow = Number(tile.slice(0, tile.indexOf(':')));
+        const tileCol = Number(tile.slice(tile.indexOf(':') + 1));
 
-        updatedBoard[cellRow][cellCol].state = 1;
+        updatedBoard[tileRow][tileCol].state = 1;
       });
 
       return [...updatedBoard];
     });
   };
 
+  // triggered on game over, reveals all mines on board
+  const revealAllMines = () => {
+    setBoard(prev => {
+      const updatedBoard = [...prev];
+
+      for (let row = 0; row < updatedBoard.length; row++) {
+        for (let col = 0; col < updatedBoard[0].length; col++) {
+          const currentTile = updatedBoard[row][col];
+
+          if (currentTile.value === 'x') {
+            if (currentTile.state !== 'f') {
+              updatedBoard[row][col].state = 1;
+            }
+          }
+        }
+      }
+
+      return updatedBoard;
+    });
+  };
+
+  // generates new game board with a given (width, height, mineCount)
+  // and sets the game state to active
   const generateNewBoard = (width, height, mineCount) => {
     setBoardWidth(width);
     setBoardHeight(height);
     setBoardMineCount(mineCount);
     setBoard(generateMinesweeperBoard(width, height, mineCount));
+    setGameActive(true);
   };
 
+  // returns the tile value at [row, col]
   const getTile = (row, col) => {
     // catches issues with out of sync tile updates
     if (row < boardHeight && col < boardWidth) {
@@ -189,15 +219,16 @@ export const GlobalContextProvider = ({ children }) => {
     return null;
   };
 
+  // reveals the tile at [row, col]
   const selectTile = (row, col) => {
     // skip flagged tiles
     if (board[row][col].state === 'f') {
       return;
     }
 
-    // reveal empty sections of board if empty
+    // look for empty section of board if tile is empty
     if (board[row][col].value === 0) {
-      searchNearbyCells(row, col, board);
+      searchNearbyTiles(row, col, board);
       return;
     }
 
@@ -207,8 +238,16 @@ export const GlobalContextProvider = ({ children }) => {
       updatedBoard[row][col].state = 1;
       return updatedBoard;
     });
+
+    // check for mines and end game
+    if (board[row][col].value === 'x') {
+      console.log('game over');
+      setGameActive(false);
+      revealAllMines();
+    }
   };
 
+  // toggle flag state for a tile
   const flagTile = (row, col) => {
     setBoard(prev => {
       const updatedBoard = [...prev];
@@ -225,14 +264,15 @@ export const GlobalContextProvider = ({ children }) => {
 
   const globalStateValue = {
     board,
+    getTile,
+    flagTile,
+    selectTile,
+    gameActive,
     boardWidth,
     boardHeight,
+    boardScale,
     boardMineCount,
-    setBoardMineCount,
     generateNewBoard,
-    getTile,
-    selectTile,
-    flagTile,
   };
 
   return (

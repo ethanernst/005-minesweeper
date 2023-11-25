@@ -23,10 +23,10 @@ function Game({ scale, tileSize }) {
   const { boardWidth, boardHeight } = useContext(GlobalContext);
   const [boardJsx, setBoardJsx] = useState([]);
 
-  // generate game board
+  // generate game board when width or height changes
   useEffect(() => {
     console.log('displaying board');
-    const boardJsx = [];
+    const newBoardJsx = [];
 
     for (let row = 0; row < boardHeight; row++) {
       const boardColumn = [];
@@ -41,14 +41,11 @@ function Game({ scale, tileSize }) {
           />
         );
       }
-      boardJsx.push(<tr key={row}>{boardColumn}</tr>);
+      newBoardJsx.push(<tr key={row}>{boardColumn}</tr>);
     }
 
-    setBoardJsx(boardJsx);
+    setBoardJsx(newBoardJsx);
   }, [boardWidth, boardHeight]);
-
-  // console.log(board);
-  // console.log(boardJsx);
 
   return (
     <Container
