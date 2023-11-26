@@ -93,10 +93,11 @@ function generateMinesweeperBoard(width, height, mineCount) {
   return finalBoard;
 }
 
-// initial constants
-const INITIALWIDTH = 30;
-const INITIALHEIGHT = 30;
-const INITIALMINECOUNT = Math.floor(INITIALWIDTH * INITIALHEIGHT * 0.1);
+// initially set to 0 to initialize Context
+// GameWindow updates values on first load
+const INITIALWIDTH = 0;
+const INITIALHEIGHT = 0;
+const INITIALMINECOUNT = 0;
 // const INITIALBOARDSCALE = 1;
 
 const initialBoard = generateMinesweeperBoard(
@@ -118,7 +119,7 @@ export const GlobalContextProvider = ({ children }) => {
   // starting from an empty tile, recursively reveal adjacent tiles
   // until no more adjacent empty tiles are found
   const searchNearbyTiles = (row, col, board) => {
-    console.log('searching tiles from', row, col);
+    console.log(`[Context] Searching tiles from [${row},${col}]`);
 
     const directions = [
       [-1, 0],
@@ -177,6 +178,8 @@ export const GlobalContextProvider = ({ children }) => {
 
       return [...updatedBoard];
     });
+
+    checkWin();
   };
 
   // triggered on game over, reveals all mines on board
@@ -240,7 +243,7 @@ export const GlobalContextProvider = ({ children }) => {
       flippedTiles === boardWidth * boardHeight
     ) {
       setGameState('win');
-      console.log('game win');
+      console.log('============ GAME WIN ============');
     }
   };
 
@@ -278,7 +281,7 @@ export const GlobalContextProvider = ({ children }) => {
     // if mine, trigger game loss
     // if no mine, check for game win
     if (board[row][col].value === 'x') {
-      console.log('game over');
+      console.log('============ GAME OVER ============');
       setGameState('lose');
       revealAllMines();
     } else {

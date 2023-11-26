@@ -5,19 +5,19 @@ import styled from 'styled-components';
 import GlobalContext from '../store/GlobalContext';
 
 // tile images
-import tileEmpty from '../assets/tile.jpg';
-import tile0 from '../assets/0.png';
-import tile1 from '../assets/1.png';
-import tile2 from '../assets/2.png';
-import tile3 from '../assets/3.png';
-import tile4 from '../assets/4.png';
-import tile5 from '../assets/5.png';
-import tile6 from '../assets/6.png';
-import tile7 from '../assets/7.png';
-import tile8 from '../assets/8.png';
-import tileX from '../assets/x.png';
-import tileF from '../assets/f.png';
-import tileW from '../assets/w.png';
+import tileEmpty from '../assets/tiles/tile.jpg';
+import tile0 from '../assets/tiles/0.png';
+import tile1 from '../assets/tiles/1.png';
+import tile2 from '../assets/tiles/2.png';
+import tile3 from '../assets/tiles/3.png';
+import tile4 from '../assets/tiles/4.png';
+import tile5 from '../assets/tiles/5.png';
+import tile6 from '../assets/tiles/6.png';
+import tile7 from '../assets/tiles/7.png';
+import tile8 from '../assets/tiles/8.png';
+import tileX from '../assets/tiles/x.png';
+import tileF from '../assets/tiles/f.png';
+import tileW from '../assets/tiles/w.png';
 
 const imageUrls = {
   0: tile0,
@@ -55,14 +55,15 @@ function Tile({ tileSize, scale, row, column }) {
   const { getTile, selectTile, flagTile, gameState } =
     useContext(GlobalContext);
 
-  // independant state for this tile, set to initial state value
-  const [tileValue, setTileValue] = useState(getTile(row, column));
+  // independant state, updated by effect when board updates
+  const [tileState, setTileState] = useState('default');
+  const tileValue = getTile(row, column)?.value;
 
   // calculate scaled tile size
   const SIZE = tileSize * scale;
 
   // set image url
-  const imageUrl = imageUrls[tileValue] || imageUrls.default;
+  const imageUrl = imageUrls[tileState] || imageUrls.default;
 
   // trigger tile action in context
   const handleClick = e => {
@@ -98,24 +99,24 @@ function Tile({ tileSize, scale, row, column }) {
 
     // not revealed
     if (!tile.state) {
-      setTileValue('default');
+      setTileState('default');
       return;
     }
 
     // reveal incorrectly flagged tiles on game end
     if (gameState === 'lose' && tile.state === 'f' && tile.value !== 'x') {
-      setTileValue('w');
+      setTileState('w');
       return;
     }
 
     // flagged
     if (tile.state === 'f') {
-      setTileValue('f');
+      setTileState('f');
       return;
     }
 
     // revealed
-    setTileValue(tile.value);
+    setTileState(tile.value);
   }, [getTile, gameState]);
 
   return (
