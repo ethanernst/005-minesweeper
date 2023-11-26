@@ -25,7 +25,7 @@ function Game({ scale, tileSize }) {
 
   // generate game board when width or height changes
   useEffect(() => {
-    console.log('displaying board');
+    console.log('[Game] Displaying board');
     const newBoardJsx = [];
 
     for (let row = 0; row < boardHeight; row++) {

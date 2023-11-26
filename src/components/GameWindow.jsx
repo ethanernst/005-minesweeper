@@ -1,4 +1,4 @@
-import { useContext, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 
 import useWindowDimensions from '../hooks/useWindowDimensions';
 
@@ -22,34 +22,86 @@ const Header = styled.div`
   width: 100%;
 
   display: flex;
+  flex-wrap: wrap;
 
   align-items: center;
-  justify-content: start;
+  justify-content: center;
 
   h1 {
     font-size: 48pt;
-    margin: 5px;
+    margin: 0px 0px 0px 15px;
+    min-width: 400px;
   }
 `;
 
 const Settings = styled.div`
-  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+`;
+
+const SettingsGroup = styled.div`
+  width: max-content;
+  min-width: 120px;
+
+  margin: 0px 20px;
 
   display: flex;
   flex-direction: column;
-  align-items: center;
-`;
-
-const SettingsContent = styled.div`
-  flex: 1;
-
-  display: flex;
-`;
-
-const SettingsContentGroup = styled.div`
-  flex: 1;
-  width: 300px;
   text-align: center;
+
+  p {
+    line-height: 1;
+  }
+
+  input {
+    margin: 3px 0px;
+  }
+
+  button {
+    display: inline-block;
+    border: none;
+    border-radius: 10px;
+    padding: 1rem;
+    margin: 10px;
+
+    text-decoration: none;
+    background: lightgray;
+    color: black;
+
+    font-family: inherit;
+    font-size: 1rem;
+    text-align: center;
+
+    cursor: pointer;
+    transition: background 250ms ease-in-out, transform 150ms ease;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+  }
+
+  button:hover {
+    background: ${({ $color }) => $color};
+  }
+
+  button:active {
+    transform: scale(0.99);
+  }
+
+  .win {
+    background-color: green;
+    color: white;
+    border-radius: 10px;
+    line-height: 3;
+    margin: 8px 0px;
+  }
+
+  .lose {
+    background-color: #cc4444;
+    color: white;
+    border-radius: 10px;
+    line-height: 3;
+    margin: 8px 0px;
+  }
 `;
 
 const GameContainer = styled.div`
@@ -60,6 +112,7 @@ const GameContainer = styled.div`
   justify-content: center;
   align-items: center;
 
+  // disables selection of the board or any images
   -webkit-touch-callout: none; /* iOS Safari */
   -webkit-user-select: none; /* Safari */
   -khtml-user-select: none; /* Konqueror HTML */
@@ -70,8 +123,14 @@ const GameContainer = styled.div`
 
 function GameWindow() {
   const { height, width } = useWindowDimensions();
-  const { boardWidth, boardHeight, boardMineCount, generateNewBoard } =
-    useContext(GlobalContext);
+  const {
+    boardWidth,
+    boardHeight,
+    boardMineCount,
+    generateNewBoard,
+    resetBoard,
+    gameState,
+  } = useContext(GlobalContext);
 
   const widthRef = useRef();
   const heightRef = useRef();
@@ -95,10 +154,17 @@ function GameWindow() {
   const handleUpdateGame = e => {
     e.preventDefault();
 
-    const newWidth = widthRef.current.value;
-    const newheight = heightRef.current.value;
-    const newMineCount = mineCountRef.current.value;
-    generateNewBoard(newWidth, newheight, newMineCount);
+    const newWidth = Number(widthRef.current.value);
+    const newHeight = Number(heightRef.current.value);
+    const newMineCount = Number(mineCountRef.current.value);
+    generateNewBoard(newWidth, newHeight, newMineCount);
+  };
+
+  // resets current board state using current params without regenerating board jsx
+  const handleResetBoard = e => {
+    e.preventDefault();
+
+    resetBoard();
   };
 
   return (
@@ -106,16 +172,14 @@ function GameWindow() {
       <Header $height={HEADERHEIGHTINPX}>
         <h1>minesweeper</h1>
         <Settings>
-          <h2>Settings</h2>
-          <SettingsContent>
-            <SettingsContentGroup>
-              <h3>Game</h3>
-              <p>New game</p>
-              <p>Reset</p>
-            </SettingsContentGroup>
-            <SettingsContentGroup>
-              <h3>Board Size</h3>
-              <form onSubmit={handleUpdateGame}>
+          <SettingsGroup $color={'lightcoral'}>
+            {gameState === 'win' && <p className="win">You win!</p>}
+            {gameState === 'lose' && <p className="lose">You lose!</p>}
+            <button onClick={handleResetBoard}>Reset</button>
+          </SettingsGroup>
+          <SettingsGroup $color={'lightblue'}>
+            <form onSubmit={handleUpdateGame}>
+              <div>
                 <label htmlFor="width">Width: </label>
                 <input
                   ref={widthRef}
@@ -125,6 +189,8 @@ function GameWindow() {
                   max={maxBoardWidth}
                   defaultValue={boardWidth}
                 />
+              </div>
+              <div>
                 <label htmlFor="height">Height: </label>
                 <input
                   ref={heightRef}
@@ -134,6 +200,8 @@ function GameWindow() {
                   max={maxBoardHeight}
                   defaultValue={boardHeight}
                 />
+              </div>
+              <div>
                 <label htmlFor="mines">Mines: </label>
                 <input
                   ref={mineCountRef}
@@ -143,21 +211,15 @@ function GameWindow() {
                   max={maxMineCount}
                   defaultValue={boardMineCount}
                 />
-                <button type="submit">Update</button>
-              </form>
-            </SettingsContentGroup>
-            <SettingsContentGroup>
-              <h3>Game Window</h3>
-              <p>
-                width: {width}px ({maxBoardWidth} tiles max)
-              </p>
-              <p>
-                height: {height - HEADERHEIGHTINPX}px ({maxBoardHeight} tiles
-                max)
-              </p>
-              <p>mine count: {boardMineCount}</p>
-            </SettingsContentGroup>
-          </SettingsContent>
+              </div>
+              <button type="submit">Update</button>
+            </form>
+          </SettingsGroup>
+          <SettingsGroup>
+            <p>Max width: {maxBoardWidth} tiles</p>
+            <p>Max height: {maxBoardHeight} tiles</p>
+            <p>Max mines: {maxMineCount}</p>
+          </SettingsGroup>
         </Settings>
       </Header>
       <GameContainer>

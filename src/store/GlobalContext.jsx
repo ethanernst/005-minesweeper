@@ -25,10 +25,10 @@ function generateEmptyArray(width, height) {
 // 1 -> revealed
 // f -> flagged
 function generateMinesweeperBoard(width, height, mineCount) {
-  console.log('generating empty array:', width, height);
+  console.log(`[Context] Generating board (${width}w x ${height}h)`);
   const newBoard = generateEmptyArray(width, height);
 
-  console.log('adding mines');
+  console.log(`[Context] Adding ${mineCount} mines`);
   for (let i = 0; i < mineCount; i++) {
     let row = Math.floor(Math.random() * height);
     let col = Math.floor(Math.random() * width);
@@ -68,7 +68,7 @@ function generateMinesweeperBoard(width, height, mineCount) {
     return mineCount;
   };
 
-  console.log('updating tile values');
+  console.log('[Context] Updating tile values');
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {
       if (newBoard[row][col] !== 'x') {
@@ -78,7 +78,7 @@ function generateMinesweeperBoard(width, height, mineCount) {
   }
 
   // convert tile value array to board array with tile value and states
-  console.log('generating final board');
+  console.log('[Context] Generating final board');
   const finalBoard = [];
   for (let row = 0; row < height; row++) {
     const finalCol = [];
@@ -88,7 +88,8 @@ function generateMinesweeperBoard(width, height, mineCount) {
     finalBoard.push(finalCol);
   }
 
-  console.log('board generated: ', finalBoard);
+  console.log('[Context] Board generated');
+  // console.log(finalBoard);
   return finalBoard;
 }
 
@@ -96,7 +97,7 @@ function generateMinesweeperBoard(width, height, mineCount) {
 const INITIALWIDTH = 30;
 const INITIALHEIGHT = 30;
 const INITIALMINECOUNT = Math.floor(INITIALWIDTH * INITIALHEIGHT * 0.1);
-const INITIALBOARDSCALE = 1;
+// const INITIALBOARDSCALE = 1;
 
 const initialBoard = generateMinesweeperBoard(
   INITIALWIDTH,
@@ -110,9 +111,9 @@ export const GlobalContextProvider = ({ children }) => {
   const [boardWidth, setBoardWidth] = useState(INITIALWIDTH);
   const [boardHeight, setBoardHeight] = useState(INITIALHEIGHT);
   const [boardMineCount, setBoardMineCount] = useState(INITIALMINECOUNT);
-  const [boardScale, setBoardScale] = useState(INITIALBOARDSCALE);
+  // const [boardScale, setBoardScale] = useState(INITIALBOARDSCALE);
   const [board, setBoard] = useState(initialBoard);
-  const [gameActive, setGameActive] = useState(true);
+  const [gameState, setGameState] = useState('playing');
 
   // starting from an empty tile, recursively reveal adjacent tiles
   // until no more adjacent empty tiles are found
@@ -206,7 +207,41 @@ export const GlobalContextProvider = ({ children }) => {
     setBoardHeight(height);
     setBoardMineCount(mineCount);
     setBoard(generateMinesweeperBoard(width, height, mineCount));
-    setGameActive(true);
+    setGameState('playing');
+  };
+
+  // generates new board state without updating width, height, or mine count
+  const resetBoard = () => {
+    setBoard(generateMinesweeperBoard(boardWidth, boardHeight, boardMineCount));
+    setGameState('playing');
+  };
+
+  // checks if all tiles are flipped and all mines are flagged
+  // then triggers game win
+  const checkWin = () => {
+    let flaggedMines = 0;
+    let flippedTiles = 0;
+    for (let row = 0; row < board.length; row++) {
+      for (let col = 0; col < board[0].length; col++) {
+        const currentTile = board[row][col];
+
+        if (currentTile.state !== 0) {
+          flippedTiles++;
+        }
+
+        if (currentTile.value === 'x' && currentTile.state === 'f') {
+          flaggedMines++;
+        }
+      }
+    }
+
+    if (
+      flaggedMines === boardMineCount &&
+      flippedTiles === boardWidth * boardHeight
+    ) {
+      setGameState('win');
+      console.log('game win');
+    }
   };
 
   // returns the tile value at [row, col]
@@ -239,11 +274,15 @@ export const GlobalContextProvider = ({ children }) => {
       return updatedBoard;
     });
 
-    // check for mines and end game
+    // check for mine
+    // if mine, trigger game loss
+    // if no mine, check for game win
     if (board[row][col].value === 'x') {
       console.log('game over');
-      setGameActive(false);
+      setGameState('lose');
       revealAllMines();
+    } else {
+      checkWin();
     }
   };
 
@@ -260,6 +299,8 @@ export const GlobalContextProvider = ({ children }) => {
 
       return updatedBoard;
     });
+
+    checkWin();
   };
 
   const globalStateValue = {
@@ -267,12 +308,13 @@ export const GlobalContextProvider = ({ children }) => {
     getTile,
     flagTile,
     selectTile,
-    gameActive,
+    gameState,
     boardWidth,
     boardHeight,
-    boardScale,
+    // boardScale,
     boardMineCount,
     generateNewBoard,
+    resetBoard,
   };
 
   return (

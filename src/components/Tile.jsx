@@ -52,7 +52,7 @@ const TileContainer = styled.td`
 `;
 
 function Tile({ tileSize, scale, row, column }) {
-  const { getTile, selectTile, flagTile, gameActive } =
+  const { getTile, selectTile, flagTile, gameState } =
     useContext(GlobalContext);
 
   // independant state for this tile, set to initial state value
@@ -68,8 +68,8 @@ function Tile({ tileSize, scale, row, column }) {
   const handleClick = e => {
     e.preventDefault();
 
-    // disable input if game over
-    if (!gameActive) {
+    // disable input if win or lose
+    if (gameState !== 'playing') {
       return;
     }
 
@@ -103,7 +103,7 @@ function Tile({ tileSize, scale, row, column }) {
     }
 
     // reveal incorrectly flagged tiles on game end
-    if (!gameActive && tile.state === 'f' && tile.value !== 'x') {
+    if (gameState === 'lose' && tile.state === 'f' && tile.value !== 'x') {
       setTileValue('w');
       return;
     }
@@ -116,7 +116,7 @@ function Tile({ tileSize, scale, row, column }) {
 
     // revealed
     setTileValue(tile.value);
-  }, [getTile, gameActive]);
+  }, [getTile, gameState]);
 
   return (
     <TileContainer
